@@ -1,0 +1,4 @@
+name: mlbio
+channels:
+  - defaults
+prefix: /home/cookysch/anaconda3/envs/mlbio
