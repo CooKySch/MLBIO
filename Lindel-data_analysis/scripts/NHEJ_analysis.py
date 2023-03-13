@@ -1,6 +1,5 @@
 #!/usr/bin/env python 
 # Author: Will Chen
-<<<<<<< HEAD
 
 #System tools 
 import os,sys,csv,re
