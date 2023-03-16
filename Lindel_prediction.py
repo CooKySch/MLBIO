@@ -12,8 +12,8 @@ import Lindel, os, sys
 from Lindel.Predictor import * 
 import pickle as pkl
 
-weights = pkl.load(open(os.path.join(Lindel.__path__[0], "Model_weights.pkl"),'rb'))
-prerequesites = pkl.load(open(os.path.join(Lindel.__path__[0],'model_prereq.pkl'),'rb'))
+weights = pkl.load(open("data/Model_weights_l1.pkl",'rb'))
+prerequesites = pkl.load(open('data/model_prereq.pkl','rb'))
 seq = sys.argv[1].upper() #input your sequence here
 filename = sys.argv[2]
 try:
