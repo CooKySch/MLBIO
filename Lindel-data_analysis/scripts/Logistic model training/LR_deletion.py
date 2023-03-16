@@ -69,7 +69,7 @@ y = data[:, feature_size:]
 
 np.random.seed(121)
 
-# Indices of the classes, from 0 to 556
+# Indices of the samples (sample IDs)
 idx = np.arange(len(y))
 
 # Shuffle data
@@ -82,12 +82,15 @@ valid_size = round(len(data) * 0.1) if 'ForeCasT' in fname else 450
 
 # Select sequences corresponding to shuffled indices
 Seq_train = Seqs[idx]
+print(len(Seq_train))
+print(len(y))
 x_train,x_valid = [],[]
 y_train,y_valid = [],[]
 
 # Create training set with 3900 samples
 for i in range(train_size):
     # Check that labels for each sample sum up to at most 1
+    # We only consider deletion labels (that is why the sum is not 1)
     if 1> sum(y[i,:536])> 0 :
         # Normalize (probability distribution)
         y_train.append(y[i,:536]/sum(y[i,:536]))
@@ -131,6 +134,8 @@ for l in tqdm(lambdas):
 
     # Evaluate MSE on the validation set, for each lambda
     y_hat = model.predict(x_valid)
+    print(y_hat.shape)
+    print(y_valid.shape)
     errors_l2.append(mse(y_hat, y_valid))
 
 # Similar as before, L1 regularization
