@@ -1,17 +1,11 @@
-import sys
+import sys, os
 import pickle as pkl
 import numpy as np
 
-# Most of the code was taken from LR_deletion.py
-def mse(x, y):
-    return ((x-y)**2).mean()
-
-# Arguments: working directory (workdir) and file name (fname)
-workdir = sys.argv[1]
-fname   = sys.argv[2]
-
-# Number of desired predictions (size of test set)
-num_predictions = sys.argv[3]
+# Arguments: test_data, working directory (workdir) and file name (fname)
+test_data = sys.argv[1]
+workdir = sys.argv[2]
+fname   = sys.argv[3]
 
 # Load 1) labels: dictionary mapping 557 classes to indices 
 #      2) rev_index: reverse indexing of labels (keys are indices and classes are values)
@@ -19,6 +13,10 @@ num_predictions = sys.argv[3]
 label,rev_index,features = pkl.load(open(workdir+'feature_index_all.pkl','rb'))
 # Load training data
 data = np.loadtxt(workdir+fname, delimiter="\t", dtype=str)
+
+# Load test data
+test_data = np.loadtxt(workdir+test_data, delimiter="\t", dtype=str)
+
 # Total feature size: add additional 384 sequence one-hot encoded features
 feature_size = len(features) + 384
 # Features and labels: columns 1 to 3590 (3033 [mh features + sequence features]; the last 557 columns are the classes (probability distribution))
@@ -35,8 +33,16 @@ valid_size = round(len(data) * 0.1) if 'ForeCasT' in fname else 450
 # Create predictions with the aggregate model
 # "aggregate model, in which the predicted frequencies of 557 indel classes are simply taken from the aggregate frequency at which each is observed in the training and validation datasets"
 
+y = y[:3900+450]
 summed_columns = y.sum(axis = 0)
-one_prediction = summed_columns / summed_columns.sum()
+one_prediction = summed_columns / len(y) #summed_columns.sum()
 
 # Aggregate predictions for validation data
-aggregate_predictions_validation_set = np.tile(one_prediction, (num_predictions, 1))
+aggregate_predictions_test_set = np.tile(one_prediction, (len(test_data), 1))
+
+if os.path.exists(workdir + "aggregate_model_test_predictions.pkl"):
+    os.remove(workdir + "aggregate_model_test_predictions.pkl")
+
+# Save predictions to file
+with open(workdir + 'aggregate_model_test_predictions.pkl', 'wb') as f:
+    pkl.dump(aggregate_predictions_test_set, f)
