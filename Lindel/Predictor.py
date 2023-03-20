@@ -114,17 +114,17 @@ def create_label_array(lb,ep_freq,seq):
     return lb_array
 
 
-def gen_prediction(seq,wb,prereq):
+def gen_prediction(seq, features_encoded,wb,prereq):
     '''generate the prediction for all classes, redundant classes will be combined'''
-    pam = {'AGG':0,'TGG':0,'CGG':0,'GGG':0}
-    guide = seq[13:33]
-    if seq[33:36] not in pam:
-        return ('Error: No PAM sequence is identified.')
-    w1,b1,w2,b2,w3,b3 = wb
     label,rev_index,features,frame_shift = prereq
     indels = gen_indel(seq,30) 
-    input_indel = onehotencoder(guide)
-    input_ins   = onehotencoder(guide[-6:])
+    w1,b1,w2,b2,w3,b3 = wb
+    
+    MH_features = np.array(features_encoded.iloc[0:2650])
+    one_hot_features = np.array(features_encoded.iloc[2651:3034])
+
+    input_indel = one_hot_features  # onehotencoder(guide)
+    input_ins   = one_hot_features #  onehotencoder(guide[-6:])
     input_del   = np.concatenate((create_feature_array(features,indels),input_indel),axis=None)
     cmax = gen_cmatrix(indels,label) # combine redundant classes
     dratio, insratio = softmax(np.dot(input_indel,w1)+b1)
