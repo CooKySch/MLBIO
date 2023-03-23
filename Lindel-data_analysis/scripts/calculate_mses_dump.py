@@ -271,6 +271,7 @@ def main():
     # set to log scale
     plt.legend()
     plt.xlabel("MSEs (10^-3)")
+    plt.xlim(0.0, 2.0)
     plt.title('Model performance on test set')
     plt.savefig("data/hist.png")
     plt.show()
