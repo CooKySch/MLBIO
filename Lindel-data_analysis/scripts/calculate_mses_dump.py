@@ -14,6 +14,12 @@ import scipy.sparse as sparse
 import re
 import json
 from tensorflow import keras
+import seaborn as sns
+from scipy import stats
+
+
+def mse(x, y):
+        return ((x-y)**2).mean()
 
 def onehotencoder(seq):
     '''convert to single and di-nucleotide hotencode'''
@@ -179,11 +185,12 @@ def main():
     data = test_data[:, 1:].astype('float32')
     y = data[:, feature_size:]
 
-    model_weights = pkl.load(open("data/Model_weights_theirs.pkl", 'rb'))
     model_preq = pkl.load(open("data/model_prereq.pkl", 'rb'))
     label,rev_index,features,frame_shift = model_preq
 
+    # initialize an empty array to store predicted frameshifts
     predicted_frameshift = []
+
     # initialize an empty predictions array
     predictions = []
     for sample in test_data:
@@ -192,14 +199,34 @@ def main():
         pred = gen_prediction(sequence, weights, model_preq)[0]
         predictions.append(pred)
         predicted_frameshift.append(gen_prediction(sequence, weights, model_preq)[1])
+        
+    # get the actual frameshifts
+    actual_frameshift = np.dot(y,frame_shift).tolist()
 
-    print(len(predicted_frameshift), len(frame_shift))
-
-    # plot the predicted frameshifts vs the true frameshifts
-    plt.scatter(frame_shift, predicted_frameshift)
-    plt.xlabel("True frameshift")
-    plt.ylabel("Predicted frameshift")
-    plt.savefig("data/frameshifts.png")
+    
+    # plot the actual vs. predicted frameshifts
+    for i, pfs in enumerate(predicted_frameshift): 
+        if pfs == 'r':
+            predicted_frameshift.pop(i)
+            actual_frameshift.pop(i)
+    # calculate the MSE
+    mse = np.mean((np.array(actual_frameshift) - np.array(predicted_frameshift))**2)
+    # keep 3 decimal places
+    mse = round(mse, 3)
+    # calculate pearson correlation
+    pearson = stats.pearsonr(actual_frameshift, predicted_frameshift)
+    # keep 3 decimal places
+    pearson = round(pearson[0], 3)
+    # include in the plot the mse and pearson correlation
+    plt.title("MSE: {}, Pearson correlation: {}".format(mse, pearson))
+    plt.plot([0, 1], [0, 1], transform=plt.gca().transAxes, color = "red")
+    plt.scatter(actual_frameshift, predicted_frameshift)
+    plt.xlabel("Measured frameshift ratio")
+    plt.ylabel("Predicted frameshift ratio")
+    plt.xlim(0, 1)
+    plt.ylim(0, 1)
+    plt.savefig ("data/frameshift.png")
+    plt.close()
 
     mses = []
     # calculate MSEs
@@ -214,11 +241,41 @@ def main():
     # save the MSEs
     np.save("data/mses", mses)
 
-    # pltot histogram with MSEs with 30 bins and x scale from 0.0 to 1.4  step 0.2 and all multiplied by 10**-3
-    plt.hist(mses, bins=30, range=(0.0*10**-3, 1.4*10**-3))
-    plt.xlabel("MSE")
-    plt.ylabel("Frequency")
+    
+    # Load aggregate model predictions
+    aggregate_test_predictions = pkl.load(open("data/aggregate_model_test_predictions.pkl", "rb"))
+
+    # Load true predictions
+    test_data = np.loadtxt("data/Lindel_test.txt", delimiter="\t", dtype=str)
+    test_data = test_data[:,1:].astype('float32')
+
+    _, _, features = pkl.load(open('data/feature_index_all.pkl','rb'))
+    feature_size = len(features) + 384
+    y_test = np.array(test_data[:, feature_size:])
+
+    dummy_mses = []
+    for i in range(len(y)):
+        # print(y_test[i], aggregate_test_predictions[i])
+        dmse = np.mean((aggregate_test_predictions[i] - y_test[i])**2)
+        dummy_mses.append(dmse)
+
+    
+    # # devide mses and dummt_mses by 10^-3 to make the plot more readable
+    dummy_mses = np.array(dummy_mses)/10**-3
+    mses = np.array(mses)/10**-3
+
+    # plot histogram of MSEs
+    sns.histplot(dummy_mses, bins=40, color='pink', label='Aggregate model', alpha=0.8, edgecolor=None)
+    sns.histplot(mses, bins=40, color='#ADD8E6', label='Lindel', alpha=0.8, edgecolor=None)
+    plt.xticks(np.arange(0, 3, 0.2))
+    # set to log scale
+    plt.legend()
+    plt.xlabel("MSEs (10^-3)")
+    plt.title('Model performance on test set')
+    plt.savefig("data/hist.png")
     plt.show()
+
+
 
     return
 
