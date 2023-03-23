@@ -32,6 +32,7 @@ def main():
     # Load the model h5 file with keras
     model = keras.models.load_model(args.model)
 
+
     # Generate predictions
     predictions = model.predict(X)
     print(type(predictions))
