@@ -169,7 +169,6 @@ def main():
     model_del = keras.models.load_model("data/L1_del.h5")
     model_ins = keras.models.load_model("data/L1_ins.h5")
     model_indels = keras.models.load_model("data/L2_indel.h5")
-    print(model_indels.get_weights())
     weights = [model_indels.get_weights()[0], model_indels.get_weights()[1] , model_del.get_weights()[0], model_del.get_weights()[1],  model_ins.get_weights()[0], model_ins.get_weights()[1]]
 
    
@@ -182,7 +181,9 @@ def main():
 
     model_weights = pkl.load(open("data/Model_weights_theirs.pkl", 'rb'))
     model_preq = pkl.load(open("data/model_prereq.pkl", 'rb'))
+    label,rev_index,features,frame_shift = model_preq
 
+    predicted_frameshift = []
     # initialize an empty predictions array
     predictions = []
     for sample in test_data:
@@ -190,15 +191,21 @@ def main():
         sequence = sample[0]
         pred = gen_prediction(sequence, weights, model_preq)[0]
         predictions.append(pred)
+        predicted_frameshift.append(gen_prediction(sequence, weights, model_preq)[1])
 
+    print(len(predicted_frameshift), len(frame_shift))
 
+    # plot the predicted frameshifts vs the true frameshifts
+    plt.scatter(frame_shift, predicted_frameshift)
+    plt.xlabel("True frameshift")
+    plt.ylabel("Predicted frameshift")
+    plt.savefig("data/frameshifts.png")
 
     mses = []
     # calculate MSEs
     for i, prediction in enumerate(predictions):
         if prediction == "Error: No PAM sequence is identified." or prediction == "'Error: The input sequence is not 60bp long." or type(prediction) == str:
             continue
-        print(type(prediction))
         mses.append(np.mean((prediction - y[i])**2))
     
     # print the mean MSE

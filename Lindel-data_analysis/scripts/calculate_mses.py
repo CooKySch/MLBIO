@@ -13,7 +13,11 @@ import numpy as np
 import scipy.sparse as sparse
 import re
 import json
+import sklearn.dummy as sk
+import seaborn as sns
 
+def mse(x, y):
+        return ((x-y)**2).mean()
 
 def gen_indel(sequence,cut_site):
     '''This is the function that used to generate all possible unique indels and 
@@ -126,6 +130,7 @@ def main():
     predictions_del = np.load("data/predictions_del.npy")
     predictions_ins = np.load("data/predictions_ins.npy")
 
+
     # load labels
     label, rev_index, features = pkl.load(open("data/feature_index_all.pkl", "rb"))
     feature_size = len(features) + 384
@@ -135,11 +140,10 @@ def main():
 
     # concatenate predictions
     predictions = np.concatenate(((predictions_ins.T * predictions_indels[:, 1]).T, (predictions_del.T * predictions_indels[:, 0]).T), axis=1)
-    predictions_temp = predictions.copy()
     # iterate over test data
     for i, row in enumerate(test_data):
-        # get sequence
 
+        # get sequence
         sequence = row[0]
         indels = gen_indel(sequence, 30)
         cmax = gen_cmatrix(indels, label)
@@ -148,11 +152,6 @@ def main():
         predictions[i] =  predictions[i] * cmax
 
         y[i] = y[i] * cmax
-
-    # calculate the amount of positions that differ between predictions_temp and predictions
-    diff = np.sum(predictions_temp != predictions)
-    print("Amount of positions that differ between predictions_temp and predictions: {}".format(diff))
-
 
 
     mses = []
@@ -166,11 +165,64 @@ def main():
     # save the MSEs
     np.save("data/mses", mses)
 
-    # pltot histogram with MSEs with 30 bins and x scale from 0.0 to 1.4  step 0.2 and all multiplied by 10**-3
-    plt.hist(mses, bins=25, range=(0.0*10**-3, 1.4*10**-3))
-    plt.xlabel("MSE")
-    plt.ylabel("Frequency")
+    # Most of the code was taken from LR_deletion.py
+    
+    # Load aggregate model predictions
+    aggregate_test_predictions = pkl.load(open("data/aggregate_model_test_predictions.pkl", "rb"))
+
+    # Load true predictions
+    test_data = np.loadtxt("data/Lindel_test.txt", delimiter="\t", dtype=str)
+    test_data = test_data[:,1:].astype('float32')
+
+    _, _, features = pkl.load(open('data/feature_index_all.pkl','rb'))
+    feature_size = len(features) + 384
+    y_test = np.array(test_data[:, feature_size:])
+
+    dummy_mses = []
+    for i in range(len(y)):
+        dummy_mses.append(mse(y_test[i], aggregate_test_predictions[i]))
+  
+   
+    # # load the training data
+    # Lindel_training = pd.read_csv("data/Lindel_training.txt", sep='\t')
+    # # load the test data
+    # Lindel_test = pd.read_csv("data/Lindel_test.txt", sep='\t')
+
+    # x_test = Lindel_test.iloc[ :, 1:3034] # 3033 binary features [2649 MH binary features + 384 one hot encoded features]
+    # y_test = Lindel_test.iloc[ :, 3034:] # 557 observed outcome frequencies
+
+
+    # X_train = Lindel_training.iloc[:, 1:3034] # 3033 binary features [2649 MH binary features + 384 one hot encoded features]
+    # y_train = Lindel_training.iloc[:, 3034:] # 557 observed outcome frequencies
+    
+    # # dummy classifier based on prior distribution of the training data
+    # dummy_clf = sk.DummyClassifier(strategy="prior", random_state=0)
+    # dummy_clf.fit(X_train, y_train)
+
+    # dummy_predictions = dummy_clf.predict_proba(x_test)
+    # print(len(dummy_predictions[0]), len(y_test))
+    # dummy_mses = []
+
+    # for i, row in enumerate(dummy_predictions):
+    #     dummy_mse = (dummy_predictions[i] - y_test.iloc[i])**2
+    #     dummy_mses.append(np.mean(dummy_mse))
+
+    
+    # # devide mses and dummt_mses by 10^-3 to make the plot more readable
+    dummy_mses = np.array(dummy_mses)/10**-3
+    mses = np.array(mses)/10**-3
+
+    # plot histogram with sns 
+    sns.histplot(dummy_mses, bins=30, color='pink', label='Dummy', alpha=0.8, edgecolor=None)
+    sns.histplot(mses, bins=30, color='#ADD8E6', label='Lindel', alpha=0.8, edgecolor=None)
+    plt.xticks(np.arange(0, 3, 0.2))
+    # set to log scale
+    plt.legend()
+    plt.xlabel("MSEs (10^-3)")
+
     plt.show()
+    
+
 
     return
 
