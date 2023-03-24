@@ -48,7 +48,7 @@ def label_mh(sample,mh_len):
     for k in range(len(sample)):
         read = sample[k]
         if read[3] == 'del':
-            idx = read[2] + read[4] + 17
+            idx = read[2] + read[4] +17
             idx2 = idx + read[5]
             x = mh_len if read[5] > mh_len else read[5]
             for i in range(x,0,-1):
@@ -114,17 +114,17 @@ def create_label_array(lb,ep_freq,seq):
     return lb_array
 
 
-def gen_prediction(seq, features_encoded,wb,prereq):
+def gen_prediction(seq,wb,prereq):
     '''generate the prediction for all classes, redundant classes will be combined'''
+    pam = {'AGG':0,'TGG':0,'CGG':0,'GGG':0}
+    guide = seq[13:33]
+    if seq[33:36] not in pam:
+        return (None, None)
+    w1,b1,w2,b2,w3,b3 = wb
     label,rev_index,features,frame_shift = prereq
     indels = gen_indel(seq,30) 
-    w1,b1,w2,b2,w3,b3 = wb
-    
-    MH_features = np.array(features_encoded.iloc[0:2650])
-    one_hot_features = np.array(features_encoded.iloc[2651:3034])
-
-    input_indel = one_hot_features  # onehotencoder(guide)
-    input_ins   = one_hot_features #  onehotencoder(guide[-6:])
+    input_indel = onehotencoder(guide)
+    input_ins   = onehotencoder(guide[-6:])
     input_del   = np.concatenate((create_feature_array(features,indels),input_indel),axis=None)
     cmax = gen_cmatrix(indels,label) # combine redundant classes
     dratio, insratio = softmax(np.dot(input_indel,w1)+b1)
