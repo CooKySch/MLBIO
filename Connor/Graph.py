@@ -1,3 +1,4 @@
+import time
 import numpy as np
 
 class Graph:
@@ -8,7 +9,7 @@ class Graph:
         self.nodes = list()
         self.edges = dict()
         self.data = data
-        for i in range(len(data)):
+        for i in range(len(data[0])):
             self.nodes.append(i)
         self.create_edges()
         return
@@ -18,16 +19,14 @@ class Graph:
         data_node2 = self.data[:, node2]
         count_a = count_b = count_c = count_d = 0
         for i in range(len(data_node1)):
-            if data_node1[i] == 0:
-                if data_node2[i] == 0:
-                    count_a += 1
-                else:
-                    count_b += 1
+            if data_node1[i] == 0 and data_node2[i] == 0:
+                count_a += 1
+            elif data_node1[i] == 0:
+                count_b += 1
+            elif data_node2[i] == 0:
+                count_c += 1
             else:
-                if data_node2[i] == 0:
-                    count_c += 1
-                else:
-                    count_d += 1
+                count_d += 1
         r = np.cos((np.pi / 180) * 180/(1 + np.sqrt(count_b * count_c / (count_a * count_d + 1e-6))))
         return r
 
@@ -45,7 +44,12 @@ class Graph:
 
     def create_edges(self):
         # For all features, find the correlation between one another
+        start = time.time()
         for i in range(0, len(self.data[0])):
             for j in range(i, len(self.data[0])):
-                self.edges[(i, j)] = self.tetrachoric(i, j)
+                if i != j:
+                    self.edges[(i, j)] = self.tetrachoric(i, j)
+            if i % 10 == 0:
+                print(time.time() - start)
+                start = time.time()
         return
