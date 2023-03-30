@@ -16,6 +16,7 @@ import json
 import sklearn.dummy as sk
 import seaborn as sns
 
+
 def mse(x, y):
         return ((x-y)**2).mean()
 
@@ -119,6 +120,7 @@ def create_feature_array(ft,uniq_indels):
 
 def softmax(weights):
     return (np.exp(weights)/sum(np.exp(weights)))
+
 
 
 def main():
