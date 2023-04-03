@@ -103,15 +103,15 @@ for i in range(train_size,len(Seq_train)):
 x_train,x_valid = np.array(x_train),np.array(x_valid)
 y_train,y_valid = np.array(y_train),np.array(y_valid)
 
-# Number of features of the input
-size_input = x_train.shape[1]
-
 # Only use features selected
-selected_features = pkl.load(open("selected_features.pkl", "rb"))
+features = pkl.load(open("Connor/selected_features_p1.pkl", "rb"))
 
-x_train, x_valid = x_train[:, selected_features], x_valid[:, selected_features]
+x_train, x_valid = x_train[:, features], x_valid[:, features]
 print(len(x_train[0]))
 print(len(x_valid[0]))
+
+# Number of features of the input
+size_input = x_train.shape[1]
 
 # Train model
 # Regularization strengths, from 10^(-10) to 10^(-1)
@@ -152,8 +152,8 @@ for l in tqdm(lambdas):
     errors_l1.append(mse(y_hat, y_valid))
 
 # Save mean squared errors
-np.save(workdir+'mse_l1_del.npy',errors_l1)
-np.save(workdir+'mse_l2_del.npy',errors_l2)
+np.save(workdir+'mse_l1_del_Connor.npy',errors_l1)
+np.save(workdir+'mse_l2_del_Connor.npy',errors_l2)
 
 # Final model
 # Find best lambda for L1 regularization
@@ -168,7 +168,7 @@ model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['mse']
 history = model.fit(x_train, y_train, epochs=100, validation_data=(x_valid, y_valid), 
           callbacks=[EarlyStopping(patience=1)], verbose=0)
 
-model.save(workdir+'L1_del.h5')
+model.save(workdir+'L1_del_Connor.h5')
 
 # As before, but with L2 regularization
 l = lambdas[np.argmin(errors_l2)]
@@ -179,4 +179,4 @@ model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['mse']
 history = model.fit(x_train, y_train, epochs=100, validation_data=(x_valid, y_valid), 
           callbacks=[EarlyStopping(patience=1)], verbose=0)
 
-model.save(workdir+'L2_del.h5')
+model.save(workdir+'L2_del_Connor.h5')

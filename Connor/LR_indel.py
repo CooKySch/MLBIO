@@ -101,8 +101,8 @@ for l in tqdm(lambdas):
     errors_l1.append(mse(y_hat, y_valid))
 
 
-np.save(workdir+'mse_l1_indel.npy',errors_l1)
-np.save(workdir+'mse_l2_indel.npy',errors_l2)
+np.save(workdir+'mse_l1_indel_Connor.npy',errors_l1)
+np.save(workdir+'mse_l2_indel_Connor.npy',errors_l2)
 
 # final model
 l = lambdas[np.argmin(errors_l1)]
@@ -113,7 +113,7 @@ model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['mse'])
 history = model.fit(x_train, y_train, epochs=100, validation_data=(x_valid, y_valid), 
           callbacks=[EarlyStopping(patience=1)], verbose=0)
 
-model.save(workdir+'L1_indel.h5')
+model.save(workdir+'L1_indel_Connor.h5')
 
 
 l = lambdas[np.argmin(errors_l2)]
@@ -124,4 +124,4 @@ model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['mse'])
 history = model.fit(x_train, y_train, epochs=100, validation_data=(x_valid, y_valid), 
           callbacks=[EarlyStopping(patience=1)], verbose=0)
 
-model.save(workdir+'L2_indel.h5')
+model.save(workdir+'L2_indel_Connor.h5')

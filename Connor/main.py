@@ -39,7 +39,7 @@ def main():
     louvain_graph.add_nodes_from(graph.node_weights)
     louvain_graph.add_weighted_edges_from(edges_louvain_graph)
 
-    communities = nx.algorithms.community.louvain_communities(louvain_graph)
+    partitions = list(nx.algorithms.community.louvain_partitions(louvain_graph, weight='weight'))
 
     '''for i, community in enumerate(communities):
         print(str(i) + ": " + str(len(community)))
@@ -55,20 +55,20 @@ def main():
 
     # Select features from the communities
     all_features = list()
-    expected = 0
-    for community in communities:
-        print(min(community))
+
+    for community in partitions[0]:
         feature_set_size = int(np.sqrt(len(community)))
-        expected += feature_set_size
         features = dict()
         for feature in community:
-            std = df.iloc[:3900, feature].std()
+            std = df.iloc[:4350, feature].std()
             features[feature] = std
-        features = dict(sorted(features.items(), key=lambda item: item[1]))
+        features = dict(sorted(features.items(), key=lambda item: item[1], reverse=True))
         community_features = list(features.keys())[:feature_set_size]
         all_features.extend(community_features)
 
-    f = open("selected_features.pkl", "wb")
+    all_features = sorted(all_features)
+    print(len(all_features))
+    f = open("selected_features_p1.pkl", "wb")
     pkl.dump(all_features, f)
     f.close()
 
