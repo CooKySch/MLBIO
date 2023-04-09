@@ -16,6 +16,26 @@ import matplotlib.pyplot as plt
 import numpy as np
 import scipy.sparse as sparse
 
+
+def gen_prediction(seq,prereq, model_del, model_ins, model_indel):
+    '''generate the prediction for all classes, redundant classes will be combined'''
+    pam = {'AGG':0,'TGG':0,'CGG':0,'GGG':0}
+    guide = seq[13:33]
+    if seq[33:36] not in pam:
+        return (None, None)
+    
+    label,rev_index,features,frame_shift = prereq
+    indels = gen_indel(seq,30) 
+    input_indel = onehotencoder(guide).reshape(1, -1)
+    input_ins   = onehotencoder(guide[-6:]).reshape(1, -1)
+    input_del   = np.concatenate((create_feature_array(features,indels),input_indel),axis=None).reshape(1, -1)
+    cmax = gen_cmatrix(indels,label) # combine redundant classes
+    dratio, insratio = model_indel.predict(input_indel)[0]
+    ds  = model_del.predict(input_del)
+    ins = model_ins.predict(input_ins)
+    y_hat = np.concatenate((ds*dratio,ins*insratio),axis=None) * cmax
+    return (y_hat,np.dot(y_hat,frame_shift))
+
 def softmax(weights):
     return (np.exp(weights)/sum(np.exp(weights)))
 
@@ -140,7 +160,7 @@ def onehotencoder(seq):
         encode[head_idx[seq[k:k+2]+str(k)]] =1.
     return encode
 
-def gen_prediction_lindel(seq,wb,prereq):
+def gen_prediction_combined(seq,wb,prereq, indel_ratio_model, ins_model, del_model):
     # '''generate the prediction for all classes, redundant classes will be combined'''
     if len(seq)!= 60:
         return ('Error: The input sequence is not 60bp long.')
@@ -151,20 +171,27 @@ def gen_prediction_lindel(seq,wb,prereq):
     w1,b1,w2,b2,w3,b3 = wb
     label,rev_index,features,frame_shift = prereq
     indels = gen_indel(seq,30) 
-    input_indel = onehotencoder(guide)
-    input_ins   = onehotencoder(guide[-6:])
+    input_indel = onehotencoder(guide).reshape(1, -1)
+    input_ins   = onehotencoder(guide[-6:]).reshape(1,-1)
     input_del   = np.concatenate((create_feature_array(features,indels),input_indel),axis=None)
     cmax = gen_cmatrix(indels,label) # combine redundant classes
-    dratio, insratio = softmax(np.dot(input_indel,w1)+b1)
-    ds  = softmax(np.dot(input_del,w2)+b2)
-    ins = softmax(np.dot(input_ins,w3)+b3)
+    dratio, insratio = indel_ratio_model.predict(input_indel)[0]
+    ds  =  softmax(np.dot(input_del,w2)+b2)
+    ins = ins_model.predict(input_ins) #softmax(np.dot(input_ins,w3)+b3)
     y_hat = np.concatenate((ds*dratio,ins*insratio),axis=None) * cmax
-    return (y_hat,np.dot(y_hat,frame_shift))
+    return (y_hat,  np.dot(y_hat,frame_shift))
 
 def main():
     parser = argparse.ArgumentParser(description="plot the predicted frameshifts vs. the actual frameshifts and mse histogram")
     args = parser.parse_args()
 
+    # load lindel models
+    model_del_lindel = keras.models.load_model("data/L1_del.h5")
+    model_ins_lindel = keras.models.load_model("data/L1_ins.h5")
+    model_indels_lindel = keras.models.load_model("data/L2_indel.h5")
+    weights_lindel = [model_indels_lindel.get_weights()[0], model_indels_lindel.get_weights()[1] , model_del_lindel.get_weights()[0], model_del_lindel.get_weights()[1],  model_ins_lindel.get_weights()[0], model_ins_lindel.get_weights()[1]]
+
+    
     # load labels
     label, rev_index, features = pkl.load(open("data/feature_index_all.pkl", "rb"))
     feature_size = len(features) + 384
@@ -175,61 +202,61 @@ def main():
     model_preq = pkl.load(open("data/model_prereq.pkl", 'rb'))
     label,rev_index,features,frame_shift = model_preq
     # load pkle file with the predicted frameshifts and predictions for Random Forest
-    predicted_frameshift = pkl.load(open('data/predicted_frameshift_0.9_training.pkl','rb'))
-    predictions = pkl.load(open('data/predictions_0.9_training.pkl','rb'))
+    predictions = pkl.load(open('data/predictions.pkl','rb'))
     # normalize predictions
     for i, p in enumerate(predictions):
         try:
             predictions[i] = p / np.sum(p)
         except:
             continue
+    
+    # load models
+    model_del = pkl.load(open("data/RF_deletion.pkl", "rb"))
+    model_ins =  pkl.load(open("data/RF_insertion.pkl", "rb"))
+    model_indels = pkl.load(open("data/RF_indel.pkl", "rb"))
+
+
+    predictions_combined= []
+    predicted_frameshift_combined = []
+    for sample in test_data:
+        # get the sequence
+        sequence = sample[0]
+        res = gen_prediction_combined(sequence, weights_lindel, model_preq, model_indels, model_ins, model_del)
+        pred_lindel = res[0]
+        predicted_frameshift_combined.append(res[1])
+        predictions_combined.append(pred_lindel)
 
     # get the actual frameshifts
     actual_frameshift = np.dot(y,frame_shift).tolist()
 
     # plot the actual vs. predicted frameshifts    
-    for i, pfs in enumerate(predicted_frameshift): 
+    for i, pfs in enumerate(predicted_frameshift_combined): 
         if type(pfs) != np.float64:
             # remove the predicted frameshifts that are not floats
-            predicted_frameshift.pop(i)
+            predicted_frameshift_combined.pop(i)
             actual_frameshift.pop(i)
 
-    mse = np.mean((np.array(actual_frameshift) - np.array(predicted_frameshift))**2)
+    mse = np.mean((np.array(actual_frameshift) - np.array(predicted_frameshift_combined))**2)
     mse = round(mse, 3)
 
     # calculate pearson correlation
-    pearson = stats.pearsonr(actual_frameshift, predicted_frameshift)
+    pearson = stats.pearsonr(actual_frameshift, predicted_frameshift_combined)
     # keep 3 decimal places
     pearson = round(pearson[0], 3)
     # include in the plot the mse and pearson correlation
     plt.title("MSE: {}, Pearson correlation: {}".format(mse, pearson))
     plt.plot([0, 1], [0, 1], transform=plt.gca().transAxes, color = "red")
-    plt.scatter(actual_frameshift, predicted_frameshift)
+    plt.scatter(actual_frameshift, predicted_frameshift_combined)
     plt.xlabel("Measured frameshift ratio")
     plt.ylabel("Predicted frameshift ratio")
     plt.xlim(0, 1)
     plt.ylim(0, 1)
-    plt.savefig("Lindel-data_analysis/scripts/RF_training/frameshifts_0.9_training.png")
+    plt.savefig("Lindel-data_analysis/scripts/RF_training/frameshifts_combined.png")
     plt.close()
-
-
-    # load lindel models
-    model_del_lindel = keras.models.load_model("data/L1_del.h5")
-    model_ins_lindel = keras.models.load_model("data/L1_ins.h5")
-    model_indels_lindel = keras.models.load_model("data/L2_indel.h5")
-    weights_lindel = [model_indels_lindel.get_weights()[0], model_indels_lindel.get_weights()[1] , model_del_lindel.get_weights()[0], model_del_lindel.get_weights()[1],  model_ins_lindel.get_weights()[0], model_ins_lindel.get_weights()[1]]
-
-    predictions_lindel = []
-    for sample in test_data:
-        # get the sequence
-        sequence = sample[0]
-        pred_lindel = gen_prediction_lindel(sequence, weights_lindel, model_preq)[0]
-        predictions_lindel.append(pred_lindel)
-    
 
     mses_lindel = []
     # calculate MSEs
-    for i, prediction in enumerate(predictions_lindel):
+    for i, prediction in enumerate(predictions_combined):
         if type(prediction) == str  or type(prediction) != np.ndarray:
             continue
         mses_lindel.append(np.mean((prediction - y[i])**2))
@@ -271,8 +298,9 @@ def main():
 
     # plot histogram of MSEs
     sns.histplot(dummy_mses, bins=40, color='pink', label='Aggregate model', alpha=0.8, edgecolor=None)
-    sns.histplot(mses_lindel, bins=40, color='#ADD8E6', label='Lindel', alpha=1.0, edgecolor=None)
-    sns.histplot(mses, bins=40, color='#F88379', label='Random Forest', alpha=0.7, edgecolor=None)
+    sns.histplot(mses, bins=40, color='#F88379', label='Random Forest', alpha=1.0, edgecolor=None)
+    sns.histplot(mses_lindel, bins=40, color='#ADD8E6', label='RF & LR', alpha=0.7, edgecolor=None)
+
 
     plt.xticks(np.arange(0, 3, 0.2))
     # set to log scale
@@ -280,7 +308,7 @@ def main():
     plt.xlabel("MSEs (10^-3)")
     plt.xlim(0.0, 2.0)
     plt.title('Model performance on test set')
-    plt.savefig("Lindel-data_analysis/scripts/RF_training/hist_0.9_training.png")
+    plt.savefig("Lindel-data_analysis/scripts/RF_training/hist_combined.png")
 
     return
 

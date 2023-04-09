@@ -36,12 +36,13 @@ def main():
     Seq_train = Seqs
     x_train = []
     y_train = []
+    # train_size = int(len(data) * 0.9)
     train_size = len(data)
 
     # Create training set with
     for i in range(train_size):
         # Check that labels for each sample sum up to at most 1
-        if 1> sum(y[i,:536])> 0 :
+        if 1> sum(y[i,:536])> 0:
             # Normalize (probability distribution)
             y_train.append(y[i,:536]/sum(y[i,:536]))
             x_train.append(X[i])

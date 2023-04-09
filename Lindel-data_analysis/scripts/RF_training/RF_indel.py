@@ -50,6 +50,7 @@ data = data[:,1:].astype('float32')
 X = data[:,:feature_size]
 y = data[:, feature_size:]
 
+# train_size = int(len(data) * 0.9)
 train_size = len(data)
 
 Seq_train = Seqs

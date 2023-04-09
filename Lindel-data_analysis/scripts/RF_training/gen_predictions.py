@@ -8,13 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 from tqdm import tqdm
-import datetime as dt
-import pickle as pkl
-from tensorflow import keras 
-import numpy as np
-import matplotlib.pyplot as plt
-import numpy as np
-import scipy.sparse as sparse
+
 
 
 
@@ -166,9 +160,9 @@ def main():
     args = parser.parse_args()
 
     # load models
-    model_del = pkl.load(open("data/RF_deletion.pkl", "rb"))
-    model_ins =  pkl.load(open("data/RF_insertion.pkl", "rb"))
-    model_indels = pkl.load(open("data/RF_indel.pkl", "rb"))
+    model_del = pkl.load(open("data/RF_deletion_0.9_training.pkl", "rb"))
+    model_ins =  pkl.load(open("data/RF_insertion_0.9_training.pkl", "rb"))
+    model_indels = pkl.load(open("data/RF_indel_0.9_training.pkl", "rb"))
    
     # load labels
     label, rev_index, features = pkl.load(open("data/feature_index_all.pkl", "rb"))
@@ -193,8 +187,8 @@ def main():
         predicted_frameshift.append(p_frame_shift)
     
     # save the predictions  and predicted frameshifts
-    pkl.dump(predictions, open("data/predictions.pkl", "wb"))
-    pkl.dump(predicted_frameshift, open("data/predicted_frameshift.pkl", "wb"))
+    pkl.dump(predictions, open("data/predictions_0.9_training.pkl", "wb"))
+    pkl.dump(predicted_frameshift, open("data/predicted_frameshift_0.9_training.pkl", "wb"))
 
     return
 

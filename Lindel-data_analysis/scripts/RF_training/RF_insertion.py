@@ -60,8 +60,11 @@ y_train = []
 
 Seq_train = Seqs
 train_size = int(len(Seq_train))
+
+# train_size = int(len(Seq_train) * 0.9)
+
 for i in range(train_size):
-    if 1> sum(y[i,-21:])> 0 :# 5 is a random number i picked if i use pred_size here it will be -21:0 it will just generate empty array
+    if 1> sum(y[i,-21:])> 0 :
         y_train.append(y[i,-21:]/sum(y[i,-21:]))
         x_train.append(onehotencoder(Seq_train[i][-6:]))
 
