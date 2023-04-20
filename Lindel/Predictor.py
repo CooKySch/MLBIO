@@ -48,7 +48,7 @@ def label_mh(sample,mh_len):
     for k in range(len(sample)):
         read = sample[k]
         if read[3] == 'del':
-            idx = read[2] + read[4] + 17
+            idx = read[2] + read[4] +17
             idx2 = idx + read[5]
             x = mh_len if read[5] > mh_len else read[5]
             for i in range(x,0,-1):
@@ -119,7 +119,7 @@ def gen_prediction(seq,wb,prereq):
     pam = {'AGG':0,'TGG':0,'CGG':0,'GGG':0}
     guide = seq[13:33]
     if seq[33:36] not in pam:
-        return ('Error: No PAM sequence is identified.')
+        return (None, None)
     w1,b1,w2,b2,w3,b3 = wb
     label,rev_index,features,frame_shift = prereq
     indels = gen_indel(seq,30) 
