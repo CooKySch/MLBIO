@@ -175,8 +175,8 @@ def main():
     model_preq = pkl.load(open("data/model_prereq.pkl", 'rb'))
     label,rev_index,features,frame_shift = model_preq
     # load pkle file with the predicted frameshifts and predictions for Random Forest
-    predicted_frameshift = pkl.load(open('data/predicted_frameshift_0.9_training.pkl','rb'))
-    predictions = pkl.load(open('data/predictions_0.9_training.pkl','rb'))
+    predicted_frameshift = pkl.load(open('data/predicted_frameshift.pkl','rb'))
+    predictions = pkl.load(open('data/predictions.pkl','rb'))
     # normalize predictions
     for i, p in enumerate(predictions):
         try:
@@ -209,7 +209,7 @@ def main():
     plt.ylabel("Predicted frameshift ratio")
     plt.xlim(0, 1)
     plt.ylim(0, 1)
-    plt.savefig("Lindel-data_analysis/scripts/RF_training/frameshifts_0.9_training.png")
+    plt.savefig("Lindel-data_analysis/scripts/RF_training/frameshifts_rf.png")
     plt.close()
 
 
@@ -280,7 +280,7 @@ def main():
     plt.xlabel("MSEs (10^-3)")
     plt.xlim(0.0, 2.0)
     plt.title('Model performance on test set')
-    plt.savefig("Lindel-data_analysis/scripts/RF_training/hist_0.9_training.png")
+    plt.savefig("Lindel-data_analysis/scripts/RF_training/hist_rf.png")
 
     return
 
