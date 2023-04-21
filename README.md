@@ -25,6 +25,8 @@ We successfully reproduced figures 6B and 6E from Chen et al., and we corroborat
 
 ![Model](results.png)
 
+
+
 # INDIVIDUAL RESEARCH
 
 Each team member conducted individual research and extended the experiments of the original authors. The code can be found in folders named after each student.
