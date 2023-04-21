@@ -32,6 +32,7 @@ We successfully reproduced figures 6B and 6E from Chen et al., and we corroborat
 Each team member conducted individual research and extended the experiments of the original authors. The code can be found in folders named after each student.
 
 ## Gijs
+I tried to see if for the given Lindel data a better model could be found. The Model i tried was Support Vector Machine (SVM). I tried three different SVM models, each with a different kernel function. These kernel functions were the linear, polynomial and RBF kernel function. Each model can be trained separately using their respective file. To test the model use the 'Test_SVM.py' file, where the specific model can be specified manually.
 
 ## Bianca
 I investigated the effect of dimensionality reduction on the Lindel deletion model. I applied multiple correspondence analysis (MCA) with various numbers of components and plotted the performance of these smaller models. All of the code can be found and run with the notebook file `mca.ipynb`.
