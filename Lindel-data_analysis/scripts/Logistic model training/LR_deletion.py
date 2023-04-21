@@ -88,6 +88,8 @@ y_train,y_valid = [],[]
 # Create training set with 3900 samples
 for i in range(train_size):
     # Check that labels for each sample sum up to at most 1
+    # We only check for the first 536 classes, which are predicted by the deletion model
+    # Bug? -> Final training set will not be 3900 samples
     if 1> sum(y[i,:536])> 0 :
         # Normalize (probability distribution)
         y_train.append(y[i,:536]/sum(y[i,:536]))

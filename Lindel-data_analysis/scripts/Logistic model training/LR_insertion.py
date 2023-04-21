@@ -72,6 +72,7 @@ x_train,x_valid = [],[]
 y_train,y_valid = [],[]
 for i in range(train_size):
     if 1> sum(y[i,-21:])> 0 :# 5 is a random number i picked if i use pred_size here it will be -21:0 it will just generate empty array
+        # We predict 21 insertion classes
         y_train.append(y[i,-21:]/sum(y[i,-21:]))
         x_train.append(onehotencoder(Seq_train[i][-6:]))
 for i in range(train_size,len(Seq_train)):
