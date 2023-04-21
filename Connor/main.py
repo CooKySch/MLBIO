@@ -39,36 +39,63 @@ def main():
     louvain_graph.add_nodes_from(graph.node_weights)
     louvain_graph.add_weighted_edges_from(edges_louvain_graph)
 
-    partitions = list(nx.algorithms.community.louvain_partitions(louvain_graph, weight='weight'))
+    zero_features = -1
+    all_communities = list(nx.algorithms.community.louvain_communities(louvain_graph, weight='weight'))
+    for i in range(len(all_communities)):
+        if 0 in all_communities[i]:
+            zero_features = i
 
-    '''for i, community in enumerate(communities):
-        print(str(i) + ": " + str(len(community)))
-        print(community)
+    del all_communities[zero_features]
 
-    partitions = nx.algorithms.community.louvain_partitions(louvain_graph)
-    for i, partition in enumerate(partitions):
-        print(len(partition))
-        for j in partition:
-            print(str(i) + ": " + str(len(j)))
-            #print(j)
+    '''
+    all_communities = list()
+    for res in [1.2, 1.4, 1.6, 1.8, 2, 3]:
+        communities = list(nx.algorithms.community.louvain_communities(louvain_graph, weight='weight', resolution=res))
+        all_communities.append(communities)
+            
+    for communities in all_communities:
+        current_features = list()
+        for community in communities:
+            size = int(np.sqrt(len(community)))
+            features = dict()
+            for feature in community:
+                std = df.iloc[:4350, feature].std()
+                features[feature] = std
+            features = dict(sorted(features.items(), key=lambda item: item[1], reverse=True))
+            current_features.extend(list(features.keys())[:size])
+
+        all_features.append(current_features)
     '''
 
     # Select features from the communities
     all_features = list()
-
-    for community in partitions[0]:
-        feature_set_size = int(np.sqrt(len(community)))
+    '''
+    features_p = list()
+    features_2p = list()
+    features_half = list()
+    for community in communities:
+        size = int(np.sqrt(len(community)))
         features = dict()
         for feature in community:
             std = df.iloc[:4350, feature].std()
             features[feature] = std
         features = dict(sorted(features.items(), key=lambda item: item[1], reverse=True))
-        community_features = list(features.keys())[:feature_set_size]
-        all_features.extend(community_features)
+        features_p.extend(list(features.keys())[:size])
+        features_2p.extend(list(features.keys())[:2*size])
+        features_half.extend(list(features.keys())[:int(0.5*len(community))])
+    features_p = sorted(features_p)
+    features_2p = sorted(features_2p)
+    features_half = sorted(features_half)    
+    all_features.append(features_p)
+    all_features.append(features_2p)
+    all_features.append(features_half)
+    '''
 
-    all_features = sorted(all_features)
-    print(len(all_features))
-    f = open("selected_features_p1.pkl", "wb")
+    for community in all_communities:
+        all_features.extend(list(community))
+    all_features = [sorted(all_features)]
+    print(len(all_features[0]))
+    f = open("selected_features_notzero.pkl", "wb")
     pkl.dump(all_features, f)
     f.close()
 

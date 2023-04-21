@@ -4,7 +4,7 @@
 import pickle as pkl
 import os,sys,csv,re
 
-from tqdm import tqdm_notebook as tqdm
+from tqdm import tqdm
 import pylab as pl
 import numpy as np
 
@@ -104,79 +104,82 @@ x_train,x_valid = np.array(x_train),np.array(x_valid)
 y_train,y_valid = np.array(y_train),np.array(y_valid)
 
 # Only use features selected
-features = pkl.load(open("Connor/selected_features_p1.pkl", "rb"))
+all_features = pkl.load(open("Connor/selected_features_notzero.pkl", "rb"))
+for i in all_features:
+    print(str(len(i)) + " Features")
+#names = ["p", "2p", "half"]
+#names = ["1.2", "1.4", "1.6", "1.8", "2", "3"]
+names = ["notzero"]
+for feature in range(len(all_features)):
+    x_train_new, x_valid_new = x_train[:, all_features[feature]], x_valid[:, all_features[feature]]
 
-x_train, x_valid = x_train[:, features], x_valid[:, features]
-print(len(x_train[0]))
-print(len(x_valid[0]))
+    # Number of features of the input
+    size_input = x_train_new.shape[1]
 
-# Number of features of the input
-size_input = x_train.shape[1]
+    # Train model
+    # Regularization strengths, from 10^(-10) to 10^(-1)
+    lambdas = 10 ** np.arange(-10, -1, 0.1)
+    errors_l1, errors_l2 = [], []
 
-# Train model
-# Regularization strengths, from 10^(-10) to 10^(-1)
-lambdas = 10 ** np.arange(-10, -1, 0.1)
-errors_l1, errors_l2 = [], []
+    # tqgm is for progress bars
 
-# tqgm is for progress bars
+    # L2 regularization
+    for l in tqdm(lambdas):
+        np.random.seed(0)
 
-# L2 regularization
-for l in tqdm(lambdas):
+        # Initialize keras Sequential() model
+        model = Sequential()
+
+        # Replicate logistic regression model, add a densely connected layer
+        # This calculates the polynomial with coefficients being the model weights, and maps it to the range [0, 1] with softmax
+        model.add(Dense(536,  activation='softmax', input_shape=(size_input,), kernel_regularizer=l2(l)))
+
+        # Train with cross-entropy loss, 100 epochs and patience 1
+        model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['mse'])
+        model.fit(x_train_new, y_train, epochs=100, validation_data=(x_valid_new, y_valid),
+                  callbacks=[EarlyStopping(patience=1)], verbose=0)
+
+        # Evaluate MSE on the validation set, for each lambda
+        y_hat = model.predict(x_valid_new)
+        errors_l2.append(mse(y_hat, y_valid))
+
+    # Similar as before, L1 regularization
+    for l in tqdm(lambdas):
+        np.random.seed(0)
+        model = Sequential()
+        model.add(Dense(536,  activation='softmax', input_shape=(size_input,), kernel_regularizer=l1(l)))
+        model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['mse'])
+        model.fit(x_train_new, y_train, epochs=100, validation_data=(x_valid_new, y_valid),
+                  callbacks=[EarlyStopping(patience=1)], verbose=0)
+        y_hat = model.predict(x_valid_new)
+        errors_l1.append(mse(y_hat, y_valid))
+
+    # Save mean squared errors
+    np.save(workdir+'mse_l1_del_Connor' + names[feature] + '.npy',errors_l1)
+    np.save(workdir+'mse_l2_del_Connor' + names[feature] + '.npy',errors_l2)
+
+    # Final model
+    # Find best lambda for L1 regularization
+    l = lambdas[np.argmin(errors_l1)]
     np.random.seed(0)
 
-    # Initialize keras Sequential() model
+    # Re-create model and train again with chosen lambda
     model = Sequential()
-
-    # Replicate logistic regression model, add a densely connected layer
-    # This calculates the polynomial with coefficients being the model weights, and maps it to the range [0, 1] with softmax
-    model.add(Dense(536,  activation='softmax', input_shape=(size_input,), kernel_regularizer=l2(l)))
-    
-    # Train with cross-entropy loss, 100 epochs and patience 1
+    model.add(Dense(536, activation='softmax', input_shape=(size_input,), kernel_regularizer=l1(l)))
     model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['mse'])
-    model.fit(x_train, y_train, epochs=100, validation_data=(x_valid, y_valid), 
+    # Store intermediate training steps
+    history = model.fit(x_train_new, y_train, epochs=100, validation_data=(x_valid_new, y_valid),
               callbacks=[EarlyStopping(patience=1)], verbose=0)
 
-    # Evaluate MSE on the validation set, for each lambda
-    y_hat = model.predict(x_valid)
-    errors_l2.append(mse(y_hat, y_valid))
+    model.save(workdir+'L1_del_Connor' + names[feature] + '.h5')
 
-# Similar as before, L1 regularization
-for l in tqdm(lambdas):
+    # As before, but with L2 regularization
+    l = lambdas[np.argmin(errors_l2)]
     np.random.seed(0)
     model = Sequential()
-    model.add(Dense(536,  activation='softmax', input_shape=(size_input,), kernel_regularizer=l1(l)))
+    model.add(Dense(536, activation='softmax', input_shape=(size_input,), kernel_regularizer=l2(l)))
     model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['mse'])
-    model.fit(x_train, y_train, epochs=100, validation_data=(x_valid, y_valid), 
+    history = model.fit(x_train_new, y_train, epochs=100, validation_data=(x_valid_new, y_valid),
               callbacks=[EarlyStopping(patience=1)], verbose=0)
-    y_hat = model.predict(x_valid)
-    errors_l1.append(mse(y_hat, y_valid))
 
-# Save mean squared errors
-np.save(workdir+'mse_l1_del_Connor.npy',errors_l1)
-np.save(workdir+'mse_l2_del_Connor.npy',errors_l2)
-
-# Final model
-# Find best lambda for L1 regularization
-l = lambdas[np.argmin(errors_l1)]
-np.random.seed(0)
-
-# Re-create model and train again with chosen lambda
-model = Sequential()
-model.add(Dense(536, activation='softmax', input_shape=(size_input,), kernel_regularizer=l1(l)))
-model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['mse'])
-# Store intermediate training steps
-history = model.fit(x_train, y_train, epochs=100, validation_data=(x_valid, y_valid), 
-          callbacks=[EarlyStopping(patience=1)], verbose=0)
-
-model.save(workdir+'L1_del_Connor.h5')
-
-# As before, but with L2 regularization
-l = lambdas[np.argmin(errors_l2)]
-np.random.seed(0)
-model = Sequential()
-model.add(Dense(536, activation='softmax', input_shape=(size_input,), kernel_regularizer=l2(l)))
-model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['mse'])
-history = model.fit(x_train, y_train, epochs=100, validation_data=(x_valid, y_valid), 
-          callbacks=[EarlyStopping(patience=1)], verbose=0)
-
-model.save(workdir+'L2_del_Connor.h5')
+    model.save(workdir+'L2_del_Connor' + names[feature] + '.h5')
