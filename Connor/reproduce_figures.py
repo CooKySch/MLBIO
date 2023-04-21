@@ -169,8 +169,17 @@ def main():
     parser = argparse.ArgumentParser(description="MSEs for all prediction tasks")
     args = parser.parse_args()
 
-    #names = ["_Connor1.2", "_Connor1.4", "_Connor1.6", "_Connor1.8", "_Connor2", "_Connor3", ""]
-    names=["_Connornotzero", ""]
+    # Names for selecting different numbers of features with default louvain clustering
+    # names = ["_Connorp", "_Connor2p", "_Connorhalf"]
+
+    # Names for selecting sqrt(C) features with different resolutions for louvain clustering
+    #names = ["_Connor1.2", "_Connor1.4", "_Connor1.6", "_Connor1.8", "_Connor2", "_Connor3"]
+
+    # Name for not selecting features in the cluster with zero variances.
+    names=["_Connornotzero"]
+
+    # Add the following to compare to Lindel
+    names.append("")
     selected_features = pkl.load(open("../Connor/selected_features_notzero.pkl", "rb"))
 
 
@@ -188,7 +197,7 @@ def main():
     all_features = list(range(feature_size))
     selected_features.append(all_features)
     for i in range(len(names)):
-        # load L1_del.h5
+        # load the model weights
         model_del = keras.models.load_model("../data/L1_del"+names[i]+".h5")
         model_ins = keras.models.load_model("../data/L1_ins_Connor.h5")
         model_indels = keras.models.load_model("../data/L2_indel_Connor.h5")
@@ -201,6 +210,7 @@ def main():
         for sample in test_data:
             # get the sequence
             sequence = sample[0]
+            #Also give model weights
             pred = gen_prediction(sequence, weights, model_preq, selected_features[i])
             predictions.append(pred[0])
             predicted_frameshift.append(pred[1])
@@ -297,6 +307,7 @@ def main():
     plt.savefig("../data/hist.png")
     plt.show()
 
+    # I only used this for the different resolutions, as plotting 7 different mse's was not readable.
     '''
     names = ["res=1.8", "res=2", "res=3", 'Lindel']
     for i in range(len(names)):

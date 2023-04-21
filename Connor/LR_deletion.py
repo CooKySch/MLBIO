@@ -105,10 +105,14 @@ y_train,y_valid = np.array(y_train),np.array(y_valid)
 
 # Only use features selected
 all_features = pkl.load(open("Connor/selected_features_notzero.pkl", "rb"))
-for i in all_features:
-    print(str(len(i)) + " Features")
+
+# Names for selecting different numbers of features with default louvain clustering
 #names = ["p", "2p", "half"]
+
+# Names for selecting sqrt(C) features with different resolutions for louvain clustering
 #names = ["1.2", "1.4", "1.6", "1.8", "2", "3"]
+
+# Name for not selecting features in the cluster with zero variances.
 names = ["notzero"]
 for feature in range(len(all_features)):
     x_train_new, x_valid_new = x_train[:, all_features[feature]], x_valid[:, all_features[feature]]

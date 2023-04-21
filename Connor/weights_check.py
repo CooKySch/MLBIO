@@ -28,12 +28,12 @@ def main():
         sorted_vars[idx] = var
 
     sorted_vars = dict(sorted(sorted_vars.items(), key=lambda x: x[1]))
-    '''plt.title("Variance of features")
+    plt.title("Variance of features")
     plt.xlabel("Feature")
     plt.ylabel("Variance")
     plt.yscale('log')
     plt.plot(vars)
-    plt.show()'''
+    plt.show()
     model_del = keras.models.load_model("../data/L1_del.h5")
     w_del, b_del = model_del.get_weights()
 
@@ -43,8 +43,9 @@ def main():
 
     sorted_weights = dict(sorted(mean_weights.items(), key=lambda x: x[1]))
 
-    print(list(sorted_vars.items())[:10])
-    print(list(sorted_weights.items())[:10])
+    plt.scatter(list(mean_weights.keys()), list(sorted_weights.values()))
+    plt.show()
+
     fractions = list(np.arange(0.2, 1.0, 0.1))
     recognition_rate_vars_weights = list()
     for f in fractions:
@@ -58,7 +59,7 @@ def main():
     plt.plot(fractions, recognition_rate_vars_weights)
     plt.xlabel("Fraction of weights and labels")
     plt.ylabel("Recognition rate")
-    #plt.scatter(list(mean_weights.keys()), list(sorted_weights.values()))
     plt.show()
+
 
 main()
