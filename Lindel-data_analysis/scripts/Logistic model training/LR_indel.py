@@ -69,6 +69,8 @@ x_train,x_valid = [],[]
 y_train,y_valid = [],[]
 for i in range(train_size):
     x_train.append(onehotencoder(Seq_train[i]))
+    # Predictions are now 2 classes
+    # For each ground-truth set of labels: sum of deletion classes frequencies, sum of insertion classes frequencies
     y_train.append((sum(y[i][:-21]),sum(y[i][-21:])))
 for i in range(train_size,len(Seq_train)):
     x_valid.append(onehotencoder(Seq_train[i]))
