@@ -131,3 +131,6 @@ dmypy.json
 
 # Group defined
 # data/*
+
+.DS_Store*
+*/.DS_Store
